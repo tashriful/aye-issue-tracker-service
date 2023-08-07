@@ -1,21 +1,23 @@
 package com.aye.issueTracker.service;
 
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 import com.aye.issueTracker.exception.InvalidRequestDataException;
+import com.aye.issueTracker.exception.NotDeletableException;
 import com.aye.issueTracker.exception.ResourceNotFoundException;
-import com.aye.issueTracker.repository.DepartmentRepository;
+import com.aye.issueTracker.repository.*;
 import com.aye.issuetrackerdto.entityDto.TeamDto;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 //import com.project.issueTracker.exception.ResourceNotFoundException;
 import com.aye.issueTracker.model.Team;
-import com.aye.issueTracker.repository.TeamRepository;
 
 @Service
 public class TeamServiceImpl implements TeamService {
@@ -24,15 +26,17 @@ public class TeamServiceImpl implements TeamService {
     private TeamRepository teamRepository;
 
     @Autowired
-    private DepartmentService departmentService;
-
-    @Autowired
     private ModelMapper modelMapper;
 
     @Autowired
     private SequenceGeneratorService sequenceGeneratorService;
+
     @Autowired
-    private DepartmentRepository departmentRepository;
+    private EmployeeRepository employeeRepository;
+    @Autowired
+    private TicketRepository ticketRepository;
+    @Autowired
+    private UserRepository userRepository;
 
     @Override
     public List<TeamDto> getAllTeams() {
@@ -62,6 +66,10 @@ public class TeamServiceImpl implements TeamService {
         team.setId(sequenceGeneratorService.generateSequence(Team.SEQUENCE_NAME));
         team.setName(teamDto.getName());
         team.setDescription(teamDto.getDescription());
+        String currentUserName = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Long currentUserId = userRepository.findByUsername(currentUserName).get().getId();
+        team.setCreatedById(currentUserId);
+        team.setCreatedDateTime(LocalDateTime.now());
         return this.convertToDto(teamRepository.save(team));
     }
 
@@ -79,14 +87,10 @@ public class TeamServiceImpl implements TeamService {
             throw new InvalidRequestDataException("Description Can't Be empty");
         }
 
-//        Optional<Department> department = departmentRepository.findById(teamDto.getDepartmentId());
-//        if (!department.isPresent()) {
-//            throw new InvalidRequestDataException("Department Not Exist!");
-//        }
     
-        Optional<List<Team>> team = teamRepository.findByName(teamDto.getName());
-        List<Team> teams = team.get();
-        if (!teams.isEmpty()){
+        Optional<Team> team = teamRepository.findByName(teamDto.getName());
+
+        if (team.isPresent()){
             throw new InvalidRequestDataException("Team Name Already Exist!");
         }
 
@@ -102,14 +106,19 @@ public class TeamServiceImpl implements TeamService {
             Team existingTeam = optionalTeam.get();
             if(teamDto.getName() != null){
 
-                Optional<List<Team>> team = teamRepository.findByName(teamDto.getName());
-                List<Team> teams = team.get();
-                if (!teams.isEmpty()){
-                    throw new InvalidRequestDataException("Team Name Already Exist!");
+                Optional<Team> team = teamRepository.findByName(teamDto.getName());
+                if (team.isPresent()){
+                    if (team.get().getId() != teamDto.getId()) {
+                        throw new InvalidRequestDataException("Team Name Already Exist!");
+                    }
                 }
 
                 existingTeam.setName(teamDto.getName());
                 existingTeam.setDescription(teamDto.getDescription());
+                String currentUserName = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+                Long currentUserId = userRepository.findByUsername(currentUserName).get().getId();
+                existingTeam.setUpdatedById(currentUserId);
+                existingTeam.setUpdatedDateTime(LocalDateTime.now());
                 Team savedTeam = teamRepository.save(existingTeam);
                 return convertToDto(savedTeam);
             }
@@ -127,6 +136,14 @@ public class TeamServiceImpl implements TeamService {
     public void deleteTeamById(Long id) throws ResourceNotFoundException {
         Optional<Team> optionalTeam = teamRepository.findById(id);
         if (optionalTeam.isPresent()) {
+
+            Boolean employeeExist = employeeRepository.existsByTeam(optionalTeam.get());
+            Boolean ticketExist = ticketRepository.existsByTeam(optionalTeam.get());
+
+            if (employeeExist || ticketExist) {
+                throw new NotDeletableException("Delete operation not possible! Associate Entity Exist!");
+            }
+
             teamRepository.deleteById(id);
         } else {
             throw new ResourceNotFoundException("Team not found for this id: " + id);
@@ -137,10 +154,6 @@ public class TeamServiceImpl implements TeamService {
         return modelMapper.map(team, TeamDto.class);
     }
 
-//    public TeamDto convertToDto1(Team team){
-//        return new TeamDto(team.getId(), team.getName(), team.getDescription(), team.getDepartment().getId(), team.getDepartment().getName());
-////        return modelMapper.map(team, TeamDto.class);
-//    }
 
     public Team convertToEntity(TeamDto teamDto) {
         return modelMapper.map(teamDto, Team.class);

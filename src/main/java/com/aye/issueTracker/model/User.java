@@ -2,6 +2,7 @@ package com.aye.issueTracker.model;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document(collection = "USERS")
@@ -13,9 +14,13 @@ public class User {
     @Id
     private Long id;
     private String name;
+
+    @Indexed(unique = true)
     private String username;
 
     private String password;
+
+
 
 
     public User() {

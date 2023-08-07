@@ -20,10 +20,11 @@ public class JwtUtil {
     @Value("${app.jwt.expirationTime}")
     private Long jwtTokenExpirationTime;
 
-    public String generateJwtToken(Authentication authentication){
+    public String generateJwtToken(Long id, Authentication authentication){
         UserDetails user = (UserDetails) authentication.getPrincipal();
 
         Map<String, Object> claims = new HashMap<>();
+        claims.put("userId", id);
         return createToken(claims, user);
     }
 

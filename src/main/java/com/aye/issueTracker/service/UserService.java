@@ -1,5 +1,6 @@
 package com.aye.issueTracker.service;
 
+import com.aye.issueTracker.model.User;
 import com.aye.issuetrackerdto.entityDto.UserDto;
 
 import java.util.List;
@@ -19,5 +20,5 @@ public interface UserService {
     void deleteUserById(Long id);
 
 
-
+    User getUserIdByUserName(String name);
 }

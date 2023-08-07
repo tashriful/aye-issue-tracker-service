@@ -16,9 +16,10 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
-public class TicketHistoryImpl implements TicketHistoryService{
+public class TicketHistoryServiceImpl implements TicketHistoryService {
 
     @Autowired
     private TicketRepository ticketRepository;
@@ -59,6 +60,26 @@ public class TicketHistoryImpl implements TicketHistoryService{
     }
 
     @Override
+    public List<TicketHistoryDto> getAllTicketHistoryByTicket(Long id) {
+        Optional<Ticket> ticket = ticketRepository.findById(id);
+        if (ticket.isPresent()) {
+            List<TicketHistory> ticketHistories = ticketHistoryRepository.findTicketHistoryByTicket(ticket.get());
+            if (ticketHistories.size() != 0) {
+                return ticketHistories.stream().map(this::converToDto).collect(Collectors.toList());
+            }
+            else {
+                System.out.println("No ticket histories not found!");
+                throw new ResourceNotFoundException("Ticket Histories not found with this Ticket Id!");
+            }
+        }
+        else {
+            throw new ResourceNotFoundException("Ticket not found with this Ticket Id!");
+        }
+
+
+    }
+
+    @Override
     public List<TicketHistoryDto> getAllTicketHistory() {
         return null;
     }
@@ -66,11 +87,10 @@ public class TicketHistoryImpl implements TicketHistoryService{
     @Override
     public TicketHistoryDto getTicketHistoryById(Long id) {
         Optional<TicketHistory> ticketHistory = ticketHistoryRepository.findById(id);
-        if(ticketHistory.isPresent()){
+        if (ticketHistory.isPresent()) {
             return converToDto(ticketHistory.get());
-        }
-        else {
-            throw new ResourceNotFoundException("TicketHistory Not found with this id: "+id);
+        } else {
+            throw new ResourceNotFoundException("TicketHistory Not found with this id: " + id);
         }
     }
 
@@ -80,8 +100,10 @@ public class TicketHistoryImpl implements TicketHistoryService{
         TicketHistory ticketHistory = ticketHistoryRepository.
                 findTicketHistoryByTicketAndAssignedToAndAssignedByAndEndDate(ticket, prevAssignedToUser, prevAssignedByUser, null);
 
-        ticketHistory.setEndDate(LocalDate.now());
-        ticketHistoryRepository.save(ticketHistory);
+        if (ticketHistory != null) {
+            ticketHistory.setEndDate(LocalDate.now());
+            ticketHistoryRepository.save(ticketHistory);
+        }
     }
 
     @Override
@@ -89,12 +111,12 @@ public class TicketHistoryImpl implements TicketHistoryService{
 
     }
 
-    private TicketHistoryDto converToDto(TicketHistory ticketHistory){
+    private TicketHistoryDto converToDto(TicketHistory ticketHistory) {
         return modelMapper.map(ticketHistory, TicketHistoryDto.class);
     }
 
 
-    private TicketHistory convertToEntity(TicketHistoryDto ticketHistoryDto){
+    private TicketHistory convertToEntity(TicketHistoryDto ticketHistoryDto) {
         return modelMapper.map(ticketHistoryDto, TicketHistory.class);
     }
 }

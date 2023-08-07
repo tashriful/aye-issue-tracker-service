@@ -15,4 +15,6 @@ public interface TicketHistoryService {
 
 
     void updateTicketHistoryEndDate(Employee prevAssignedToUser, Employee prevAssignedByUser, Long ticketId);
+
+    List<TicketHistoryDto> getAllTicketHistoryByTicket(Long id);
 }

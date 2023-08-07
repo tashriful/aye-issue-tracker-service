@@ -2,20 +2,25 @@ package com.aye.issueTracker.service;
 
 import com.aye.issueTracker.exception.InvalidDepartmentDataException;
 import com.aye.issueTracker.exception.InvalidRequestDataException;
+import com.aye.issueTracker.exception.NotDeletableException;
 import com.aye.issueTracker.exception.ResourceNotFoundException;
 import com.aye.issueTracker.model.Department;
 import com.aye.issueTracker.model.Employee;
 import com.aye.issueTracker.model.Team;
 import com.aye.issueTracker.model.User;
 import com.aye.issueTracker.repository.EmployeeRepository;
+import com.aye.issueTracker.repository.TicketRepository;
+import com.aye.issueTracker.repository.UserRepository;
 import com.aye.issuetrackerdto.entityDto.DepartmentDto;
 import com.aye.issuetrackerdto.entityDto.EmployeeDto;
 import com.aye.issuetrackerdto.entityDto.TeamDto;
 import com.aye.issuetrackerdto.entityDto.UserDto;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -40,6 +45,10 @@ public class EmployeeServiceImpl implements EmployeeService{
 
     @Autowired
     private SequenceGeneratorService sequenceGeneratorService;
+    @Autowired
+    private TicketRepository ticketRepository;
+    @Autowired
+    private UserRepository userRepository;
 
     @Override
     public EmployeeDto getEmployeeById(Long id) {
@@ -49,6 +58,23 @@ public class EmployeeServiceImpl implements EmployeeService{
         }
         else {
             throw new ResourceNotFoundException("Employee Not found With This id: "+id);
+        }
+    }
+
+    @Override
+    public EmployeeDto getEmployeesByUserName(String username) {
+        User user = userService.getUserIdByUserName(username);
+        if (user != null){
+            Optional<Employee> employee = employeeRepository.findEmployeeByUser(user);
+            if (employee.isPresent()){
+                return modelMapper.map(employee.get(), EmployeeDto.class);
+            }
+            else {
+                throw new ResourceNotFoundException("Employee not found with this username!");
+            }
+        }
+        else {
+            return null;
         }
     }
 
@@ -97,6 +123,11 @@ public class EmployeeServiceImpl implements EmployeeService{
             employee.setTeamHead(employeeDto.getTeamHead());
         }
 
+        String currentUserName = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Long currentUserId = userRepository.findByUsername(currentUserName).get().getId();
+        employee.setCreatedById(currentUserId);
+        employee.setCreatedDateTime(LocalDateTime.now());
+
         Employee createdEmployee = employeeRepository.save(employee);
         return convertToDto(createdEmployee);
 
@@ -136,6 +167,11 @@ public class EmployeeServiceImpl implements EmployeeService{
                 existingEmployee.setTeamHead(employeeDto.getTeamHead());
             }
 
+            String currentUserName = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            Long currentUserId = userRepository.findByUsername(currentUserName).get().getId();
+            existingEmployee.setUpdatedById(currentUserId);
+            existingEmployee.setUpdatedDateTime(LocalDateTime.now());
+
             employeeRepository.save(existingEmployee);
             return convertToDto(existingEmployee);
         }
@@ -148,6 +184,14 @@ public class EmployeeServiceImpl implements EmployeeService{
     public boolean deleteEmployee(Long id) {
         Optional<Employee> employee = employeeRepository.findById(id);
         if(employee.isPresent()){
+            Boolean assignedToExist = ticketRepository.existsByAssignedTo(employee.get());
+            Boolean assignedByExist = ticketRepository.existsByAssignedBy(employee.get());
+            Boolean createdByExist = ticketRepository.existsByCreatedBy(employee.get());
+
+            if (assignedToExist || assignedByExist || createdByExist) {
+                throw new NotDeletableException("Delete operation not possible! Associate Entity Exist!");
+            }
+
             employeeRepository.delete(employee.get());
             return true;
         }
@@ -190,6 +234,7 @@ public class EmployeeServiceImpl implements EmployeeService{
             return convertToDto(employee);
         }
         else{
+            System.out.println("Department Head not found among employees");
             throw new ResourceNotFoundException("Department Head not found among employees");
         }
     }
@@ -204,9 +249,9 @@ public class EmployeeServiceImpl implements EmployeeService{
         }
 
         UserDto userDto = userService.getUserById(employee.getUserId());
-        List<Employee> employees = employeeRepository.findByUser(modelMapper.map(userDto, User.class));
+        Employee existingEmployee = employeeRepository.findByUser(modelMapper.map(userDto, User.class));
 
-        if (employees.size() != 0) {
+        if (existingEmployee != null) {
             throw new InvalidRequestDataException("Employee with this user id already exist!");
         }
 
@@ -234,12 +279,12 @@ public class EmployeeServiceImpl implements EmployeeService{
             }
 
             UserDto userDto = userService.getUserById(employee.getUserId());
-            List<Employee> employees = employeeRepository.findByUser(modelMapper.map(userDto, User.class));
+            Employee employee1 = employeeRepository.findByUser(modelMapper.map(userDto, User.class));
 
 
-            if(employees.size() != 0){
+            if(employee1 != null){
 
-                if(!employees.stream().findFirst().get().getId().equals(employee.getId())) {
+                if(!employee1.getId().equals(employee.getId())) {
                     throw new InvalidRequestDataException("Employee with this user id already exist!");
                 }
             }
@@ -260,5 +305,34 @@ public class EmployeeServiceImpl implements EmployeeService{
 
 
         // ... more validation rules
+    }
+
+    @Override
+    public List<EmployeeDto> getEmployeeByDept(Long id) {
+        DepartmentDto departmentDto = departmentService.getDepartmentById(id);
+        List<Employee> employees = employeeRepository.findEmployeesByDepartment(modelMapper.map(departmentDto, Department.class));
+        if (employees.size() != 0) {
+            return employees.stream().map(this::convertToDto).collect(Collectors.toList());
+        }
+        else {
+            throw new ResourceNotFoundException("Employee Not found With Theis Department ID: "+id);
+        }
+    }
+
+    @Override
+    public EmployeeDto getEmployeeByUser(Long createdByUserId) {
+        UserDto userDto;
+        try {
+            userDto = userService.getUserById(createdByUserId);
+        } catch (ResourceNotFoundException e) {
+            throw new ResourceNotFoundException("user Not found With This id: " + createdByUserId);
+        }
+        Optional<Employee> employee = employeeRepository.findEmployeeByUser(modelMapper.map(userDto, User.class));
+        if (employee.isPresent()) {
+            return convertToDto(employee.get());
+        } else {
+            System.out.println("Employee Not found With This id: " + createdByUserId);
+            throw new ResourceNotFoundException("Employee Not found With This id: " + createdByUserId);
+        }
     }
 }

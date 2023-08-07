@@ -21,4 +21,10 @@ public interface EmployeeService {
     EmployeeDto getTeamHead(Long teamId, Boolean isTeamHead);
 
     EmployeeDto getDepartmentHead(Long departmentId, boolean isDeptHead);
+
+    List<EmployeeDto> getEmployeeByDept(Long id);
+
+    EmployeeDto getEmployeeByUser(Long createdByUserId);
+
+    EmployeeDto getEmployeesByUserName(String username);
 }

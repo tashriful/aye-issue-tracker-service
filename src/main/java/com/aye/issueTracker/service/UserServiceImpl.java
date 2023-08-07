@@ -1,5 +1,6 @@
 package com.aye.issueTracker.service;
 
+import com.aye.issueTracker.exception.InvalidDepartmentDataException;
 import com.aye.issueTracker.exception.InvalidRequestDataException;
 import com.aye.issueTracker.exception.ResourceNotFoundException;
 import com.aye.issueTracker.model.User;
@@ -7,6 +8,7 @@ import com.aye.issueTracker.repository.UserRepository;
 import com.aye.issuetrackerdto.entityDto.UserDto;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -32,6 +34,9 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private SequenceGeneratorService sequenceGeneratorService;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
 
     @Override
     public UserDto saveUsers(UserDto userDto) {
@@ -43,7 +48,7 @@ public class UserServiceImpl implements UserService {
         user.setId(sequenceGeneratorService.generateSequence(User.SEQUENCE_NAME));
         user.setName(userDto.getName());
         user.setUsername(userDto.getUsername());
-        user.setPassword(userDto.getPassword());
+        user.setPassword(passwordEncoder.encode(userDto.getPassword()));
 
         return this.converToDto(usersRepository.save(user));
     }
@@ -57,38 +62,50 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto updateUser(UserDto userDto, Long id) {
-        validateUpdateUser(userDto);
 
-        Optional<User> user = usersRepository.findById(id);
+        try {
+            validateUpdateUser(userDto);
 
-        if(user.isPresent()){
+            Optional<User> user = usersRepository.findById(id);
 
-            User existingUser = user.get();
+            if (user.isPresent()) {
 
-            existingUser.setName(userDto.getName());
-            existingUser.setUsername(userDto.getUsername());
-            existingUser.setPassword(userDto.getPassword());
+                User existingUser = user.get();
 
-            User updatedUser = usersRepository.save(existingUser);
-            return converToDto(updatedUser);
+                existingUser.setName(userDto.getName());
+                existingUser.setUsername(userDto.getUsername());
+                if (userDto.getPassword() != null && !userDto.getPassword().isEmpty()) {
+                    existingUser.setPassword(passwordEncoder.encode(userDto.getPassword()));
+                }
+                User updatedUser = usersRepository.save(existingUser);
+                return converToDto(updatedUser);
 
+            } else {
+                throw new ResourceNotFoundException("User Not found With This ID: " + id);
+            }
         }
-        else {
-            throw new ResourceNotFoundException("User Not found With This ID: "+id);
+        catch (InvalidDepartmentDataException e){
+            throw new InvalidRequestDataException(e.getMessage());
         }
     }
 
     @Override
     public UserDto getUserById(Long id) {
-        return this.converToDto(usersRepository.findById(id).orElseThrow(()->new ResourceNotFoundException("User not found with this id ::" +
-                id)));
+        Optional<User> user = usersRepository.findById(id);
+        if (user.isPresent()){
+            return this.converToDto(user.get());
+        }
+        else {
+            System.out.println("User not found with this id ::" + id);
+            throw new ResourceNotFoundException("User Not found With This id: "+id);
+        }
     }
 
     @Override
     public void deleteUserById(Long id) {
         Optional<User> user = usersRepository.findById(id);
         if(user.isPresent()){
-            usersRepository.deleteById(id);
+            usersRepository.delete(user.get());
         }else {
             throw new ResourceNotFoundException("User not found for this id: " + id);
         }
@@ -138,17 +155,19 @@ public class UserServiceImpl implements UserService {
             throw new InvalidRequestDataException("Username is required");
         }
 
-        if (user.getPassword() == null || user.getPassword().isEmpty()) {
-            throw new InvalidRequestDataException("Password is required");
-        }
+        Optional<User> existingUser = usersRepository.findByUsername(user.getUsername());
 
-        List<User> users = usersRepository.findAllByUsername(user.getUsername());
-
-        if(users.size() != 0){
-            if(!Objects.equals(users.stream().findFirst().get().getId(), user.getId())) {
+        if(existingUser.isPresent()){
+            if(!Objects.equals(existingUser.get().getId(), user.getId())) {
                 throw new InvalidRequestDataException("username already exist!");
             }
         }
 
+    }
+
+    @Override
+    public User getUserIdByUserName(String name) {
+       Optional<User> user = usersRepository.findByUsername(name);
+        return user.orElse(null);
     }
 }

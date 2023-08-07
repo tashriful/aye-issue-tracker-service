@@ -3,8 +3,11 @@ package com.aye.issueTracker.model;
 import com.mongodb.lang.Nullable;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
+
+import java.time.LocalDateTime;
 
 @Document(collection = "EMPLOYEE")
 public class Employee {
@@ -19,6 +22,7 @@ public class Employee {
     private String address;
 
     @DBRef
+    @Indexed(unique = true)
     private User user;
 
     @DBRef
@@ -33,10 +37,18 @@ public class Employee {
     @Nullable
     private Boolean isTeamHead;
 
+    private Long createdById;
+
+    private LocalDateTime createdDateTime;
+
+    private Long updatedById;
+
+    private LocalDateTime updatedDateTime;
+
     public Employee() {
     }
 
-    public Employee(Long id, String name, String designation, String address, User user, Department department, Boolean isDeptHead, @Nullable Team team, @Nullable Boolean isTeamHead) {
+    public Employee(Long id, String name, String designation, String address, User user, Department department, Boolean isDeptHead, @Nullable Team team, @Nullable Boolean isTeamHead, Long createdById, LocalDateTime createdDateTime, Long updatedById, LocalDateTime updatedDateTime) {
         this.id = id;
         this.name = name;
         this.designation = designation;
@@ -46,6 +58,10 @@ public class Employee {
         this.isDeptHead = isDeptHead;
         this.team = team;
         this.isTeamHead = isTeamHead;
+        this.createdById = createdById;
+        this.createdDateTime = createdDateTime;
+        this.updatedById = updatedById;
+        this.updatedDateTime = updatedDateTime;
     }
 
     public Long getId() {
@@ -122,6 +138,38 @@ public class Employee {
         isTeamHead = teamHead;
     }
 
+    public Long getCreatedById() {
+        return createdById;
+    }
+
+    public void setCreatedById(Long createdById) {
+        this.createdById = createdById;
+    }
+
+    public LocalDateTime getCreatedDateTime() {
+        return createdDateTime;
+    }
+
+    public void setCreatedDateTime(LocalDateTime createdDateTime) {
+        this.createdDateTime = createdDateTime;
+    }
+
+    public Long getUpdatedById() {
+        return updatedById;
+    }
+
+    public void setUpdatedById(Long updatedById) {
+        this.updatedById = updatedById;
+    }
+
+    public LocalDateTime getUpdatedDateTime() {
+        return updatedDateTime;
+    }
+
+    public void setUpdatedDateTime(LocalDateTime updatedDateTime) {
+        this.updatedDateTime = updatedDateTime;
+    }
+
     @Override
     public String toString() {
         return "Employee{" +
@@ -134,6 +182,10 @@ public class Employee {
                 ", isDeptHead=" + isDeptHead +
                 ", team=" + team +
                 ", isTeamHead=" + isTeamHead +
+                ", createdById=" + createdById +
+                ", createdDateTime=" + createdDateTime +
+                ", updatedById=" + updatedById +
+                ", updatedDateTime=" + updatedDateTime +
                 '}';
     }
 }

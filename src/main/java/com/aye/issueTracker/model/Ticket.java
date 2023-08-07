@@ -58,10 +58,18 @@ public class Ticket {
 
     private String resolutionSummary;
 
+    private Long createdByUserId;
+
+    private LocalDateTime createdByDateTime;
+
+    private Long updatedByUserId;
+
+    private LocalDateTime updatedByDateTime;
+
     public Ticket() {
     }
 
-    public Ticket(Long id, String summary, String description, String fileId, Employee createdBy, Employee assignedBy, LocalDateTime createdDateTime, Department department, Team team, Employee departmentHead, Employee teamHead, String ticketType, Employee assignedTo, String prirority, String status, LocalDate targetResolutionDate, LocalDate actualResolutionDate, String resolutionSummary) {
+    public Ticket(Long id, String summary, String description, String fileId, Employee createdBy, Employee assignedBy, LocalDateTime createdDateTime, Department department, Team team, Employee departmentHead, Employee teamHead, String ticketType, Employee assignedTo, String prirority, String status, LocalDate targetResolutionDate, LocalDate actualResolutionDate, String resolutionSummary, Long createdByUserId, LocalDateTime createdByDateTime, Long updatedByUserId, LocalDateTime updatedByDateTime) {
         this.id = id;
         this.summary = summary;
         this.description = description;
@@ -80,6 +88,10 @@ public class Ticket {
         this.targetResolutionDate = targetResolutionDate;
         this.actualResolutionDate = actualResolutionDate;
         this.resolutionSummary = resolutionSummary;
+        this.createdByUserId = createdByUserId;
+        this.createdByDateTime = createdByDateTime;
+        this.updatedByUserId = updatedByUserId;
+        this.updatedByDateTime = updatedByDateTime;
     }
 
     public Long getId() {
@@ -226,6 +238,38 @@ public class Ticket {
         this.resolutionSummary = resolutionSummary;
     }
 
+    public Long getCreatedByUserId() {
+        return createdByUserId;
+    }
+
+    public void setCreatedByUserId(Long createdByUserId) {
+        this.createdByUserId = createdByUserId;
+    }
+
+    public LocalDateTime getCreatedByDateTime() {
+        return createdByDateTime;
+    }
+
+    public void setCreatedByDateTime(LocalDateTime createdByDateTime) {
+        this.createdByDateTime = createdByDateTime;
+    }
+
+    public Long getUpdatedByUserId() {
+        return updatedByUserId;
+    }
+
+    public void setUpdatedByUserId(Long updatedByUserId) {
+        this.updatedByUserId = updatedByUserId;
+    }
+
+    public LocalDateTime getUpdatedByDateTime() {
+        return updatedByDateTime;
+    }
+
+    public void setUpdatedByDateTime(LocalDateTime updatedByDateTime) {
+        this.updatedByDateTime = updatedByDateTime;
+    }
+
     @Override
     public String toString() {
         return "Ticket{" +
@@ -247,6 +291,10 @@ public class Ticket {
                 ", targetResolutionDate=" + targetResolutionDate +
                 ", actualResolutionDate=" + actualResolutionDate +
                 ", resolutionSummary='" + resolutionSummary + '\'' +
+                ", createdByUserId=" + createdByUserId +
+                ", createdByDateTime=" + createdByDateTime +
+                ", updatedByUserId=" + updatedByUserId +
+                ", updatedByDateTime=" + updatedByDateTime +
                 '}';
     }
 }

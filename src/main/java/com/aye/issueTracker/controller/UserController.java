@@ -40,7 +40,7 @@ public class UserController {
     private ResponseEntity<?> saveUser(@RequestBody UserDto userDto){
         try {
             UserDto users = userService.saveUsers(userDto);
-            return ResponseEntity.ok(users);
+            return ResponseEntity.ok("User Creation Successfull!");
         }
         catch (InvalidRequestDataException | ResourceNotFoundException e) {
             return new ResponseEntity<>(new CustomErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST, ZonedDateTime.now()), HttpStatus.BAD_REQUEST);
@@ -63,7 +63,8 @@ public class UserController {
 //                sout("inavalid username/password" + ex.getMessage());
                 return new ResponseEntity<>(new CustomErrorResponse("inavalid username/password" + ex.getMessage(), HttpStatus.UNAUTHORIZED, ZonedDateTime.now()), HttpStatus.UNAUTHORIZED);
             }
-            String jwt = jwtUtil.generateJwtToken(authentication);
+            Long id = userService.getUserIdByUserName(authentication.getName()).getId();
+            String jwt = jwtUtil.generateJwtToken(id, authentication);
 
             return new ResponseEntity<>(jwt, HttpStatus.OK);
         }
@@ -75,11 +76,11 @@ public class UserController {
 
     }
 
-    @PutMapping("/{id}")
-    private ResponseEntity<?> updateUser(@RequestBody UserDto userDto, @PathVariable("id") Long id){
+    @PostMapping("/update")
+    private ResponseEntity<?> updateUser(@RequestBody UserDto userDto){
         try {
-            UserDto users = userService.updateUser(userDto, id);
-            return ResponseEntity.ok(users);
+            UserDto user = userService.updateUser(userDto, userDto.getId());
+            return ResponseEntity.ok(user);
         }
         catch (InvalidRequestDataException | ResourceNotFoundException e) {
             return new ResponseEntity<>(new CustomErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST, ZonedDateTime.now()), HttpStatus.BAD_REQUEST);
@@ -108,11 +109,11 @@ public class UserController {
         }
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/delete/{id}")
     private ResponseEntity<?> deleteUserById(@PathVariable("id") Long id) {
         try {
             userService.deleteUserById(id);
-            return new ResponseEntity<>(HttpStatus.ACCEPTED);
+            return new ResponseEntity<>(HttpStatus.OK);
         } catch (ResourceNotFoundException e) {
             return new ResponseEntity<>(new CustomErrorResponse(e.getMessage(), HttpStatus.NOT_FOUND,  ZonedDateTime.now()), HttpStatus.NOT_FOUND);
         }
@@ -120,5 +121,7 @@ public class UserController {
             return new ResponseEntity<>(new CustomErrorResponse("Internal Server Error :- "+e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, ZonedDateTime.now()), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+
 
 }

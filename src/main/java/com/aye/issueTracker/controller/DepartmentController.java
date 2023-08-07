@@ -2,6 +2,7 @@ package com.aye.issueTracker.controller;
 
 import com.aye.issueTracker.common.CustomErrorResponse;
 import com.aye.issueTracker.exception.InvalidDepartmentDataException;
+import com.aye.issueTracker.exception.NotDeletableException;
 import com.aye.issueTracker.exception.ResourceNotFoundException;
 import com.aye.issueTracker.service.DepartmentService;
 import com.aye.issuetrackerdto.entityDto.DepartmentDto;
@@ -39,12 +40,12 @@ public class DepartmentController {
         }
     }
 
-    @PostMapping
+    @PostMapping("/submit")
     public ResponseEntity<?> createDepartment(@RequestBody DepartmentDto departmentDto) {
 
         try {
             DepartmentDto createdDepartment = departmentService.createDepartment(departmentDto);
-            return new ResponseEntity<>(createdDepartment, HttpStatus.CREATED);
+            return new ResponseEntity<>(createdDepartment, HttpStatus.OK);
         } catch (InvalidDepartmentDataException e) {
             return new ResponseEntity<>(new CustomErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST, ZonedDateTime.now()), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
@@ -77,12 +78,15 @@ public class DepartmentController {
     public ResponseEntity<?> deleteDepartment(@PathVariable Long id) {
         try {
             departmentService.deleteDepartment(id);
-            return new ResponseEntity<>("Succesfully Deleted!",HttpStatus.NO_CONTENT);
-        } catch (ResourceNotFoundException e) {
-            return new ResponseEntity<>(new CustomErrorResponse(e.getMessage(), HttpStatus.NOT_FOUND, ZonedDateTime.now()), HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>("Succesfully Deleted!", HttpStatus.OK);
+        } catch (ResourceNotFoundException e1) {
+            return new ResponseEntity<>(new CustomErrorResponse(e1.getMessage(), HttpStatus.NOT_FOUND, ZonedDateTime.now()), HttpStatus.NOT_FOUND);
         }
-        catch (Exception e) {
-            return new ResponseEntity<>(new CustomErrorResponse("Internal Server Error :- " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, ZonedDateTime.now()), HttpStatus.INTERNAL_SERVER_ERROR);
+        catch (NotDeletableException e3) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Cannot delete department with associated entity");
+
+        } catch (Exception e2) {
+            return new ResponseEntity<>(new CustomErrorResponse("Internal Server Error :- " + e2.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, ZonedDateTime.now()), HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
     }

@@ -15,7 +15,7 @@ public interface TicketService {
 
     void deleteTicket(Long id);
 
-    List<TicketDto> getTicketByDepartment(Long id);
+    List<TicketDto> getTicketByDepartment(Long userId);
 
     List<TicketDto> getTicketByAssignedTo(Long id);
 
@@ -24,4 +24,10 @@ public interface TicketService {
     TicketDto updateTicketStatus(Long id, TicketDto ticketDto);
 
     TicketDto updateAssignedTo(Long id, TicketDto ticketDto);
+
+    TicketDto updateAssignedToTicketHistory(Long id, TicketDto ticketDto);
+
+    List<TicketDto> getTicketsByCreatedBy(Long id);
+
+    TicketDto updateTicket(Long ticketId, TicketDto ticketDto);
 }

@@ -47,6 +47,7 @@ public class AttachmentServiceImpl implements AttachmentService{
         Attachment loadFile = new Attachment();
 
         if (gridFSFile != null && gridFSFile.getMetadata() != null) {
+            loadFile.setId(gridFSFile.getObjectId());
             loadFile.setFileName( gridFSFile.getFilename() );
 
             loadFile.setContentType( gridFSFile.getMetadata().get("_contentType").toString() );
